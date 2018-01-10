@@ -598,6 +598,17 @@ open class KolodaView: UIView, DraggableCardDelegate {
         }
     }
     
+    private func isCardAtIndexVisible(index: Int) -> Bool {
+        return index >= currentCardIndex && index < currentCardIndex + countOfVisibleCards
+    }
+    
+    private func updateCardsParameters() {
+        for (index, card) in visibleCards.enumerated() {
+            card.alpha = shouldTransparentizeNextCard && index != 0 ? alphaValueSemiTransparent : alphaValueOpaque
+            card.isUserInteractionEnabled = index == 0
+        }
+    }
+    
     // MARK: Cards managing - Insertion
     
     private func insertVisibleCardsWithIndexes(_ visibleIndexes: [Int]) -> [DraggableCardView] {
@@ -728,4 +739,52 @@ open class KolodaView: UIView, DraggableCardDelegate {
             }
         }
     }
+    
+    // MARK: Cards magain - Changing current card index
+    
+    public func moveToCardAtIndex(index: Int, animated: Bool = false) {
+        assert(
+            (0..<countOfCards).contains(index),
+            "Index \(index) is out of bounds 0..<\(countOfCards)"
+        )
+        guard currentCardIndex != index else {
+            return
+        }
+        
+        animating = true
+        let cardsIsVisible = isCardAtIndexVisible(index: index)
+        if cardsIsVisible {
+            let visibleIndex = index - currentCardIndex
+            let cardsToSwipeCount = visibleCards.count - (visibleIndex + 1)
+            
+            let cardsToSwipe: [DraggableCardView] = visibleCards.dropLast(visibleCards.count - cardsToSwipeCount).map { $0 }
+            removeCards(cardsToSwipe, animated: animated)
+            currentCardIndex = index
+            loadMissingCards(missingCardsCount())
+        } else {
+            removeCards(visibleCards, animated: animated)
+            visibleCards.removeAll()
+            currentCardIndex = index
+            setupDeck()
+        }
+                
+        updateCardsParameters()
+        delegate?.koloda(self, didShowCardAt: currentCardIndex)
+        
+        if !cardsIsVisible && animated {
+            layoutDeck()
+            applyAppearAnimationIfNeeded()
+        } else if cardsIsVisible && animated {
+            UIView.animate(
+                withDuration: defaultBackgroundCardFrameAnimationDuration,
+                animations: {
+                    self.layoutDeck()
+                }
+            )
+        } else {
+            layoutDeck()
+            animating = false
+        }
+    }
+    
 }
