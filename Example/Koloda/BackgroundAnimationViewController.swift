@@ -49,14 +49,15 @@ class BackgroundAnimationViewController: UIViewController {
 
 //MARK: KolodaViewDelegate
 extension BackgroundAnimationViewController: KolodaViewDelegate {
+    func koloda(_ koloda: KolodaView, didSelectCardAt index: Int, touchLocation point: CGPoint) {
+        print("didSelectCardAt touchLocation point", point)
+    }
+    
     
     func kolodaDidRunOutOfCards(_ koloda: KolodaView) {
         kolodaView.resetCurrentCardIndex()
     }
     
-    func koloda(_ koloda: KolodaView, didSelectCardAt index: Int) {
-        UIApplication.shared.openURL(URL(string: "https://yalantis.com/")!)
-    }
     
     func kolodaShouldApplyAppearAnimation(_ koloda: KolodaView) -> Bool {
         return true

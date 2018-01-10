@@ -54,6 +54,10 @@ class ViewController: UIViewController {
 // MARK: KolodaViewDelegate
 
 extension ViewController: KolodaViewDelegate {
+    func koloda(_ koloda: KolodaView, didSelectCardAt index: Int, touchLocation point: CGPoint) {
+        print("didSelectCardAt touchLocation point", point)
+    }
+    
     
     func kolodaDidRunOutOfCards(_ koloda: KolodaView) {
         let position = kolodaView.currentCardIndex
@@ -63,10 +67,6 @@ extension ViewController: KolodaViewDelegate {
         kolodaView.insertCardAtIndexRange(position..<position + 4, animated: true)
     }
     
-    func koloda(_ koloda: KolodaView, didSelectCardAt index: Int) {
-        UIApplication.shared.openURL(URL(string: "https://yalantis.com/")!)
-    }
-
 }
 
 // MARK: KolodaViewDataSource
@@ -88,5 +88,7 @@ extension ViewController: KolodaViewDataSource {
     func koloda(_ koloda: KolodaView, viewForCardOverlayAt index: Int) -> OverlayView? {
         return Bundle.main.loadNibNamed("OverlayView", owner: self, options: nil)?[0] as? OverlayView
     }
+    
+    
 }
 
