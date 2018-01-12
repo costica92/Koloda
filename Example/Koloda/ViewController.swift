@@ -56,6 +56,9 @@ class ViewController: UIViewController {
 extension ViewController: KolodaViewDelegate {
     func koloda(_ koloda: KolodaView, didSelectCardAt index: Int, touchLocation point: CGPoint) {
         print("didSelectCardAt touchLocation point", point)
+        
+        dataSource.remove(at: index)
+        koloda.removeCardInIndexRange(index..<index+1, animated: false)
     }
     
     
@@ -88,7 +91,6 @@ extension ViewController: KolodaViewDataSource {
     func koloda(_ koloda: KolodaView, viewForCardOverlayAt index: Int) -> OverlayView? {
         return Bundle.main.loadNibNamed("OverlayView", owner: self, options: nil)?[0] as? OverlayView
     }
-    
     
 }
 
