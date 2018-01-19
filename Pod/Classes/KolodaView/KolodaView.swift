@@ -667,6 +667,7 @@ open class KolodaView: UIView, DraggableCardDelegate {
         let cardsToRemove = visibleCards.dropFirst(countOfVisibleCards).map { $0 }
         removeCards(cardsToRemove, animated: animated)
         animator.resetBackgroundCardsWithCompletion()
+        
         if animated {
             animating = true
             animator.applyInsertionAnimation(
@@ -675,6 +676,8 @@ open class KolodaView: UIView, DraggableCardDelegate {
                     self.animating = false
                 }
             )
+        } else {
+            insertedCards.forEach { $0.alpha = 1.0 }
         }
         
         assert(

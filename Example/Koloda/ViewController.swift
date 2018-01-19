@@ -57,8 +57,10 @@ extension ViewController: KolodaViewDelegate {
     func koloda(_ koloda: KolodaView, didSelectCardAt index: Int, touchLocation point: CGPoint) {
         print("didSelectCardAt touchLocation point", point)
         
-        dataSource.remove(at: index)
-        koloda.removeCardInIndexRange(index..<index+1, animated: false)
+        let random = arc4random_uniform(UInt32(self.dataSource.count))
+        
+        dataSource.insert(dataSource[Int(random)], at: index)
+        koloda.insertCardAtIndexRange(index..<index+1, animated: false)
     }
     
     
