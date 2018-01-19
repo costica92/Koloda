@@ -299,7 +299,7 @@ open class KolodaView: UIView, DraggableCardDelegate {
     func card(cardWasReset card: DraggableCardView) {
         if visibleCards.count > 1 {
             animating = true
-            animator.resetBackgroundCardsWithCompletion { [weak self] _ in
+            animator.resetBackgroundCardsWithCompletion({ [weak self] _  in
                 guard let _self = self else {
                     return
                 }
@@ -312,7 +312,8 @@ open class KolodaView: UIView, DraggableCardDelegate {
                         card.alpha = index == 0 ? _self.alphaValueOpaque : _self.alphaValueSemiTransparent
                     }
                 }
-            }
+            }, animated: true)
+            
         } else {
             animating = false
         }
@@ -666,7 +667,7 @@ open class KolodaView: UIView, DraggableCardDelegate {
         let insertedCards = insertVisibleCardsWithIndexes(visibleIndexes.sorted())
         let cardsToRemove = visibleCards.dropFirst(countOfVisibleCards).map { $0 }
         removeCards(cardsToRemove, animated: animated)
-        animator.resetBackgroundCardsWithCompletion()
+        animator.resetBackgroundCardsWithCompletion(animated: true)
         
         if animated {
             animating = true

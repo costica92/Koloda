@@ -108,7 +108,9 @@ open class KolodaViewAnimator {
         )
     }
     
-    internal func resetBackgroundCardsWithCompletion(_ completion: AnimationCompletionBlock = nil) {
+    internal func resetBackgroundCardsWithCompletion(_ completion: AnimationCompletionBlock = nil, animated: Bool ) {
+        if animated {
+        
         UIView.animate(
             withDuration: 0.2,
             delay: 0.0,
@@ -118,7 +120,12 @@ open class KolodaViewAnimator {
             },
             completion: { finished in
                 completion?(finished)
-        })
+            })
+            
+        } else {
+            self.koloda?.moveOtherCardsWithPercentage(0)
+            completion?(true)
+        }
     }
     
 }
