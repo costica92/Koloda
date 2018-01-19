@@ -667,7 +667,7 @@ open class KolodaView: UIView, DraggableCardDelegate {
         let insertedCards = insertVisibleCardsWithIndexes(visibleIndexes.sorted())
         let cardsToRemove = visibleCards.dropFirst(countOfVisibleCards).map { $0 }
         removeCards(cardsToRemove, animated: animated)
-        animator.resetBackgroundCardsWithCompletion(animated: true)
+        animator.resetBackgroundCardsWithCompletion(animated: animated)
         
         if animated {
             animating = true
