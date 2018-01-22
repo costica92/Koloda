@@ -176,6 +176,8 @@ open class KolodaView: UIView, DraggableCardDelegate {
             card.layer.transform = CATransform3DScale(CATransform3DIdentity, scale.width, scale.height, 1.0)
             card.frame = cardParameters.frame
         }
+        
+        card.isUserInteractionEnabled = true
     }
     
     // MARK: Frames
@@ -358,8 +360,8 @@ open class KolodaView: UIView, DraggableCardDelegate {
     private func swipedAction(_ direction: SwipeResultDirection) {
         animating = true
         visibleCards.removeFirst()
-        
-        currentCardIndex += 1
+        countOfCards = countOfCards-1
+
         let shownCardsCount = currentCardIndex + countOfVisibleCards
         if shownCardsCount - 1 < countOfCards {
             loadNextCard()
@@ -373,12 +375,15 @@ open class KolodaView: UIView, DraggableCardDelegate {
                 
                 _self.visibleCards.last?.isHidden = false
                 _self.animating = false
-                _self.delegate?.koloda(_self, didSwipeCardAt: _self.currentCardIndex - 1, in: direction)
-                _self.delegate?.koloda(_self, didShowCardAt: _self.currentCardIndex)
+                _self.delegate?.koloda(_self, didSwipeCardAt: _self.currentCardIndex, in: direction)
+                
+                
+                let displayIndex = max(_self.countOfCards-1, _self.currentCardIndex+1)
+                _self.delegate?.koloda(_self, didShowCardAt: displayIndex)
             }
         } else {
             animating = false
-            delegate?.koloda(self, didSwipeCardAt: self.currentCardIndex - 1, in: direction)
+            delegate?.koloda(self, didSwipeCardAt: self.currentCardIndex, in: direction)
             delegate?.kolodaDidRunOutOfCards(self)
         }
     }
@@ -749,7 +754,8 @@ open class KolodaView: UIView, DraggableCardDelegate {
         }
     }
     
-    // MARK: Cards magain - Changing current card index
+    
+    // MARK: Cards managing - Changing current card index
     
     public func moveToCardAtIndex(index: Int, animated: Bool = false) {
         assert(
@@ -760,8 +766,33 @@ open class KolodaView: UIView, DraggableCardDelegate {
             return
         }
         
+        for i in 0..<visibleCards.count {
+            
+            let cardIndex = (visibleCards.count - 1) - i
+            let visibleCard = visibleCards[cardIndex]
+            
+            if index + cardIndex < countOfCards {
+                let contentView = dataSource!.koloda(self, viewForCardAt: index + cardIndex)
+                let overlayView = dataSource?.koloda(self, viewForCardOverlayAt: index + cardIndex)
+                visibleCard.configure(contentView, overlayView: overlayView)
+                visibleCard.alpha = 1.0
+            } else {
+                visibleCard.alpha = 0.0
+            }
+            
+            
+            
+            visibleCard.isUserInteractionEnabled = cardIndex == 0
+        }
+        
+        currentCardIndex = index
+        
+        
+        /*
         animating = true
         let cardsIsVisible = isCardAtIndexVisible(index: index)
+        
+        
         if cardsIsVisible {
             let visibleIndex = index - currentCardIndex
             let cardsToSwipeCount = visibleCards.count - (visibleIndex + 1)
@@ -776,7 +807,8 @@ open class KolodaView: UIView, DraggableCardDelegate {
             currentCardIndex = index
             setupDeck()
         }
-                
+ 
+ 
         updateCardsParameters()
         delegate?.koloda(self, didShowCardAt: currentCardIndex)
         
@@ -794,6 +826,8 @@ open class KolodaView: UIView, DraggableCardDelegate {
             layoutDeck()
             animating = false
         }
+ 
+         */
     }
     
 }

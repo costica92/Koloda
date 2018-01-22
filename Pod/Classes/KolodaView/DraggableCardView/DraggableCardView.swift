@@ -132,6 +132,11 @@ public class DraggableCardView: UIView, UIGestureRecognizerDelegate {
     }
 
     private func configureOverlayView() {
+        guard let overlay = self.overlayView else {return}
+        overlay.frame = self.bounds
+        overlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        
+        /*
         if let overlay = self.overlayView {
             overlay.translatesAutoresizingMaskIntoConstraints = false
             
@@ -169,9 +174,14 @@ public class DraggableCardView: UIView, UIGestureRecognizerDelegate {
                 constant: 0)
             addConstraints([width,height,top,leading])
         }
+        */
     }
     
     private func configureContentView() {
+        guard let contentView = self.contentView else {return}
+        contentView.frame = self.bounds
+        contentView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        /*
         if let contentView = self.contentView {
             contentView.translatesAutoresizingMaskIntoConstraints = false
             
@@ -210,6 +220,7 @@ public class DraggableCardView: UIView, UIGestureRecognizerDelegate {
             
             addConstraints([width,height,top,leading])
         }
+        */
     }
     
     func configureSwipeSpeed() {
