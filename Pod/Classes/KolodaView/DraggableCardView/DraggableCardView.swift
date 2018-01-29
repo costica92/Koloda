@@ -60,12 +60,17 @@ public class DraggableCardView: UIView, UIGestureRecognizerDelegate {
     private(set) var contentView: UIView?
     
     private var panGestureRecognizer: UIPanGestureRecognizer!
+    private var scalePanGestureRecognizer: UIPanGestureRecognizer!
     private var tapGestureRecognizer: UITapGestureRecognizer!
+    private var pinchGestureRecognizer: UIPinchGestureRecognizer!
     private var animationDirectionY: CGFloat = 1.0
     private var dragBegin = false
     private var dragDistance = CGPoint.zero
     private var swipePercentageMargin: CGFloat = 0.0
 
+    private var isScaled: Bool {
+        return transform.a < 1 || transform.d < 1
+    }
     
     //MARK: Lifecycle
     init() {
@@ -96,6 +101,8 @@ public class DraggableCardView: UIView, UIGestureRecognizerDelegate {
     deinit {
         removeGestureRecognizer(panGestureRecognizer)
         removeGestureRecognizer(tapGestureRecognizer)
+        removeGestureRecognizer(pinchGestureRecognizer)
+        removeGestureRecognizer(scalePanGestureRecognizer)
     }
     
     private func setup() {
@@ -106,7 +113,14 @@ public class DraggableCardView: UIView, UIGestureRecognizerDelegate {
         tapGestureRecognizer.delegate = self
         tapGestureRecognizer.cancelsTouchesInView = false
         addGestureRecognizer(tapGestureRecognizer)
-
+        pinchGestureRecognizer = UIPinchGestureRecognizer(target: self, action: #selector(DraggableCardView.pinchGesture(_:)))
+        pinchGestureRecognizer.delegate = self
+        addGestureRecognizer(pinchGestureRecognizer)
+        scalePanGestureRecognizer = UIPanGestureRecognizer(target: self, action: #selector(DraggableCardView.scalePanGestureRecognized(_:)))
+        scalePanGestureRecognizer.delegate = self
+        scalePanGestureRecognizer.isEnabled = false
+        addGestureRecognizer(scalePanGestureRecognizer)
+        
         if let delegate = delegate {
             cardSwipeActionAnimationDuration = delegate.card(cardSwipeSpeed: self).rawValue
         }
@@ -229,7 +243,8 @@ public class DraggableCardView: UIView, UIGestureRecognizerDelegate {
         }
     }
     
-    //MARK: GestureRecognizers
+    // MARK: GestureRecognizers
+    
     @objc func panGestureRecognized(_ gestureRecognizer: UIPanGestureRecognizer) {
         dragDistance = gestureRecognizer.translation(in: self)
         
@@ -252,7 +267,9 @@ public class DraggableCardView: UIView, UIGestureRecognizerDelegate {
             layer.rasterizationScale = UIScreen.main.scale
             layer.shouldRasterize = true
             
+            
         case .changed:
+            
             let rotationStrength = min(dragDistance.x / frame.width, rotationMax)
             let rotationAngle = animationDirectionY * self.rotationAngle * rotationStrength
             let scaleStrength = 1 - ((1 - scaleMin) * fabs(rotationStrength))
@@ -282,6 +299,30 @@ public class DraggableCardView: UIView, UIGestureRecognizerDelegate {
         }
     }
     
+    var firstPanPoint: CGPoint!
+    
+    @objc public func scalePanGestureRecognized(_ gestureRecognizer: UIPanGestureRecognizer) {
+        let translation = gestureRecognizer.translation(in: self)
+
+        if gestureRecognizer.state == .began {
+            firstPanPoint = gestureRecognizer.location(in: self)
+        }
+        let curentPanPoint = gestureRecognizer.location(in: self)
+                
+        let precentX = fabs(firstPanPoint.x - curentPanPoint.x)/self.bounds.width
+        let precentY = fabs(firstPanPoint.y - curentPanPoint.y)/self.bounds.height
+        
+        self.center = CGPoint(x:self.center.x + translation.x * transform.a,
+                              y:self.center.y + translation.y * transform.a)
+        gestureRecognizer.setTranslation(CGPoint.zero, in: self)
+        
+        adjustFrame(animated: false, allowedOffset: CGPoint(x: 20*precentX, y: 20*precentY))
+        
+        if gestureRecognizer.state == .ended {
+            adjustFrame(animated: true)
+        }
+    }
+    
     public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
         if let touchView = touch.view, let _ = touchView as? UIControl {
             return false
@@ -290,11 +331,84 @@ public class DraggableCardView: UIView, UIGestureRecognizerDelegate {
     }
     
     @objc func tapRecognized(_ recogznier: UITapGestureRecognizer) {
-        let point = recogznier.location(in: self)
+        let point = recogznier.location(in: self.superview!)
         delegate?.card(cardWasTapped: self, atLocation: point)
     }
     
-    //MARK: Private
+    @objc func pinchGesture(_ gestureRecognizer: UIPinchGestureRecognizer) {
+        
+        if gestureRecognizer.state == .began {
+            
+            let locationInView = gestureRecognizer.location(in: self)
+            let locationinSuperview = gestureRecognizer.location(in: self.superview)
+            
+            self.layer.anchorPoint = CGPoint(x: locationInView.x/self.bounds.size.width, y: locationInView.y/self.bounds.size.height)
+            self.center = locationinSuperview
+        }
+        
+        if gestureRecognizer.state == .began || gestureRecognizer.state == .changed {
+            self.transform = self.transform.scaledBy(x: gestureRecognizer.scale, y: gestureRecognizer.scale)
+            gestureRecognizer.scale = 1.0
+            
+            self.transform.a = max(self.transform.a, 0.9) // x scale
+            self.transform.d = max(self.transform.d, 0.9) // y scale
+            
+            
+            
+        } else {
+            UIView.animate(withDuration: 0.15, animations: {
+                
+                if self.transform.a < 1 || self.transform.d < 1 {
+                    self.transform = .identity
+                    
+                    self.panGestureRecognizer.isEnabled = self.transform == .identity
+                    self.scalePanGestureRecognizer.isEnabled = self.transform != .identity
+                    
+                    self.center = CGPoint(x: self.bounds.width/2, y: self.bounds.height/2)
+                    
+                    self.adjustFrame(animated: false)
+                }
+                
+            }, completion: { _ in
+                self.adjustFrame()
+            })
+            
+        }
+        
+        self.panGestureRecognizer.isEnabled = self.transform == .identity
+        self.scalePanGestureRecognizer.isEnabled = self.transform != .identity
+        
+    }
+    
+    fileprivate func adjustFrame(animated: Bool = true, allowedOffset: CGPoint = .zero) {
+        
+        var newFrame = self.frame
+        
+        if newFrame.origin.x > allowedOffset.x {
+            newFrame.origin.x = allowedOffset.x
+        } else if self.frame.maxX + allowedOffset.x < self.superview!.frame.width {
+            let Xdistance = self.superview!.frame.width - self.frame.maxX - allowedOffset.x
+            newFrame.origin.x = newFrame.origin.x + Xdistance
+        }
+        
+        if newFrame.origin.y > allowedOffset.y {
+            newFrame.origin.y = allowedOffset.y
+        } else if self.frame.maxY + allowedOffset.y < self.superview!.frame.height {
+            let Ydistance = self.superview!.frame.height - self.frame.maxY - allowedOffset.y
+            newFrame.origin.y = newFrame.origin.y + Ydistance
+        }
+        
+        UIView.animate(withDuration: animated ? 0.2 : 0.0) {
+            
+            self.frame = newFrame
+            
+            if self.transform.a > 3.0 || self.transform.d > 3.0 {
+                self.transform = CGAffineTransform(scaleX: 3.0, y: 3.0)
+            }
+        }
+    }
+    
+    // MARK: Private
     
     private var directions: [SwipeResultDirection] {
         return delegate?.card(cardAllowedDirections: self) ?? [.left, .right]
