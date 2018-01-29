@@ -23,6 +23,7 @@ protocol DraggableCardDelegate: class {
     func card(_ card: DraggableCardView, shouldSwipeIn direction: SwipeResultDirection) -> Bool
     func card(cardWasReset card: DraggableCardView)
     func card(cardWasTapped card: DraggableCardView, atLocation point: CGPoint)
+    func card(allowDoubleTap card: DraggableCardView, atLocation point: CGPoint) -> Bool
     func card(cardSwipeThresholdRatioMargin card: DraggableCardView) -> CGFloat?
     func card(cardAllowedDirections card: DraggableCardView) -> [SwipeResultDirection]
     func card(cardShouldDrag card: DraggableCardView) -> Bool
@@ -62,6 +63,7 @@ public class DraggableCardView: UIView, UIGestureRecognizerDelegate {
     private var panGestureRecognizer: UIPanGestureRecognizer!
     private var scalePanGestureRecognizer: UIPanGestureRecognizer!
     private var tapGestureRecognizer: UITapGestureRecognizer!
+    private var doubleTapGestureRecognier: UITapGestureRecognizer!
     private var pinchGestureRecognizer: UIPinchGestureRecognizer!
     private var animationDirectionY: CGFloat = 1.0
     private var dragBegin = false
@@ -103,6 +105,7 @@ public class DraggableCardView: UIView, UIGestureRecognizerDelegate {
         removeGestureRecognizer(tapGestureRecognizer)
         removeGestureRecognizer(pinchGestureRecognizer)
         removeGestureRecognizer(scalePanGestureRecognizer)
+        removeGestureRecognizer(doubleTapGestureRecognier)
     }
     
     private func setup() {
@@ -120,6 +123,9 @@ public class DraggableCardView: UIView, UIGestureRecognizerDelegate {
         scalePanGestureRecognizer.delegate = self
         scalePanGestureRecognizer.isEnabled = false
         addGestureRecognizer(scalePanGestureRecognizer)
+        doubleTapGestureRecognier = UITapGestureRecognizer(target: self, action: #selector(DraggableCardView.tapRecognized(_:)))
+        doubleTapGestureRecognier.numberOfTapsRequired = 2
+        addGestureRecognizer(doubleTapGestureRecognier)
         
         if let delegate = delegate {
             cardSwipeActionAnimationDuration = delegate.card(cardSwipeSpeed: self).rawValue
@@ -332,7 +338,21 @@ public class DraggableCardView: UIView, UIGestureRecognizerDelegate {
     
     @objc func tapRecognized(_ recogznier: UITapGestureRecognizer) {
         let point = recogznier.location(in: self.superview!)
-        delegate?.card(cardWasTapped: self, atLocation: point)
+        
+        if recogznier == tapGestureRecognizer {
+            delegate?.card(cardWasTapped: self, atLocation: point)
+            
+        } else if delegate?.card(allowDoubleTap: self, atLocation: point) ?? false {
+            UIView.animate(withDuration: 0.3, animations: {
+                if self.transform == .identity {
+                    self.transform = CGAffineTransform(scaleX: 2.0, y: 2.0)
+                } else {
+                    self.transform = .identity
+                }
+                
+            })
+            
+        }
     }
     
     @objc func pinchGesture(_ gestureRecognizer: UIPinchGestureRecognizer) {
